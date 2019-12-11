@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.keras import Model
 from tensorflow.keras.layers import Embedding, LSTM, Attention, Dense
 from tensorflow.keras.optimizers import Adam
 import numpy as np
@@ -7,7 +8,7 @@ import math
 import os
 import sklearn.model_selection as sk
 
-class SentimentClassifier(tf.keras.Model):
+class SentimentClassifier(Model):
     """
     This model classifies an input sentence as containing positive or negative
     sentiment. After this model is trained, it will be used to extract the
@@ -20,23 +21,34 @@ class SentimentClassifier(tf.keras.Model):
         self.vocab_size = vocab_size
         self.window_size = 40
         self.embedding_size = 128
-        self.batch_size = 128
+        self.batch_size = 100
 
         self.lstm1_size = 200
         self.lstm2_size = 150
         self.dense_size = 2
         self.learning_rate = 0.01
 
-        self.model.add(Embedding(self.vocab_size, self.embedding_size, input_length=self.window_size))
-        self.model.add(LSTM(self.lstm1_size, return_sequences=True, return_state=True))
-        self.model.add(Attention())
-        self.model.add(LSTM(self.lstm2_size, return_sequences=True, return_state=True))
-        self.model.add(Dense(self.dense_size, activation='sigmoid'))
+        self.E1 = Embedding(self.vocab_size, self.embedding_size, input_length=self.window_size)
+        self.LSTM1 = LSTM(self.lstm1_size, return_sequences=True, return_state=True)
+        self.A1 = Attention()
+        self.LSTM2 = LSTM(self.lstm2_size, return_sequences=True, return_state=True)
+        self.D1 = Dense(self.dense_size, activation='sigmoid')
 
-        self.optimizer(Adam(learning_rate=self.learning_rate))
+        self.optimizer = Adam(learning_rate=self.learning_rate)
 
     def call(self, inputs):
-        return self.model(inputs)
+        print(inputs.shape)
+        embeddings = self.E1(inputs)
+        print(embeddings.shape)
+        lstm1_out, _, _ = self.LSTM1(embeddings)
+        print(lstm1_out.shape)
+        attention_out = self.A1([lstm1_out, lstm1_out])
+        print(attention_out.shape)
+        lstm2_out, _, _ = self.LSTM2(attention_out)
+        print(lstm2_out.shape)
+        dense_out = self.D1(lstm2_out)
+        print(dense_out.shape)
+        return dense_out
 
     def loss(self, logits, labels):
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
@@ -51,12 +63,13 @@ def train(model, train_inputs, train_labels):
         batch_labels = train_labels[i:i+model.batch_size]
 
         with tf.GradientTape() as tape:
-            predictions = model(curr_inputs)
-            loss = model.loss(predictions, curr_labels)
+            predictions = model(batch_inputs)
+            print(predictions.shape, batch_labels.shape)
+            loss = model.loss(predictions, batch_labels)
         gradients = tape.gradient(loss, model.trainable_variables)
         model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-        print("acc: ", model.accuracy(predictions, curr_labels))
+        print("acc: ", model.accuracy(predictions, batch_labels))
 
 def test(model, test_inputs, test_labels):
     total_accuracy = []
@@ -76,8 +89,8 @@ def main():
 
     print("Preprocessing data...")
     pos_vec, neg_vec, _, vocab, _ = get_data(pos_fp, neg_fp, sarc_fp)
-    pos_labels = np.ones(shape(pos_vec)[0])
-    neg_labels = np.zeros(shape(neg_vec)[0])
+    pos_labels = np.ones(pos_vec.shape[0])
+    neg_labels = np.zeros(neg_vec.shape[0])
 
     inputs = np.concatenate((pos_vec, neg_vec))
     labels = np.concatenate((pos_labels, neg_labels))
