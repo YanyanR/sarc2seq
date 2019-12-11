@@ -77,7 +77,8 @@ def train(model, train_inputs, train_labels):
         gradients = tape.gradient(loss, model.trainable_variables)
         model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-        print("acc: ", model.accuracy(predictions, batch_labels))
+        if i % 500 == 0:
+            print("acc: ", model.accuracy(predictions, batch_labels))
 
     model.is_trained = True
 

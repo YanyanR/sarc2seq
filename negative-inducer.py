@@ -40,7 +40,7 @@ parser.add_argument('--num-data-threads', type=int, default=2,
 parser.add_argument('--num-epochs', type=int, default=1,
                     help='Number of passes through the training data to make before stopping')
 
-parser.add_argument('--learn-rate', type=float, default=0.0002,
+parser.add_argument('--learn-rate', type=float, default=0.001,
                     help='Learning rate for Adam optimizer')
 
 parser.add_argument('--log-every', type=int, default=7,
@@ -153,10 +153,10 @@ def train(model, train_x, train_y, manager, pad_index):
         model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
         # Save
-        if iteration % args.save_every == 0:
+        if b % args.save_every == 0:
             manager.save()
 
-        if iteration % 500 == 0:
+        if b % 500 == 0:
             print('**** LOSS: %g ****' % loss)
 
 def accuracy_function(self, prbs, labels, mask):
@@ -249,7 +249,7 @@ def main():
         print("Training complete.\n")
 
         print('Testing sentiment classifier...')
-        accuracy = classifier_test(model, test_x, test_y)
+        accuracy = classifier_test(SCModel, test_x, test_y)
         print("Testing complete.\n")
         print("Final testing accuracy: ", accuracy)
 
