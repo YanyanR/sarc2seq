@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tf.keras.layers import Embedding, LSTM, Attention, Dense
-from tf.keras.optimizers import Adam
+from tensorflow.keras.layers import Embedding, LSTM, Attention, Dense
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 from preprocess import get_data
 import math
@@ -86,7 +86,7 @@ def main():
     print("Preprocessing complete.\n")
 
     vocab_size = len(vocab)
-    model = Model(vocab_size)
+    model = SentimentClassifier(vocab_size)
 
     print('Training sentiment classifier...')
     train(model, train_x, train_y)
