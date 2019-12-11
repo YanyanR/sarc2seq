@@ -36,6 +36,7 @@ class SentimentClassifier(Model):
         self.D1 = Dense(self.dense_size, activation='sigmoid')
 
         self.optimizer = Adam(learning_rate=self.learning_rate)
+        self.is_trained = False
 
     def call(self, inputs):
         embeddings = self.E1(inputs)
@@ -45,6 +46,18 @@ class SentimentClassifier(Model):
         pool_out = self.pool(lstm2_out)
         dense_out = self.D1(pool_out)
         return dense_out
+
+    def get_attention(self, inputs):
+        if not self.is_trained:
+            print("Model was not been trained before call to get_attention. Returning None.")
+            return None
+
+        embeddings = self.E1(inputs)
+        lstm1_out, _, _ = self.LSTM1(embeddings)
+        attention_out = self.A1([lstm1_out, lstm1_out])
+        lstm2_out, _, _ = self.LSTM2(attention_out)
+        pool_out = self.pool(lstm2_out)
+        return pool_out
 
     def loss(self, logits, labels):
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
@@ -65,6 +78,8 @@ def train(model, train_inputs, train_labels):
         model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
         print("acc: ", model.accuracy(predictions, batch_labels))
+
+    model.is_trained = True
 
 def test(model, test_inputs, test_labels):
     total_accuracy = []
@@ -90,11 +105,20 @@ def main():
     inputs = np.concatenate((pos_vec, neg_vec))
     labels = np.concatenate((pos_labels, neg_labels))
 
+    # save as csv file
+    inputs = np.asarray(inputs)
+    labels = np.asarray(labels)
+    np.savetxt('inputs.csv', inputs, delimiter=',')
+    np.savetxt('labels.csv', labels, delimiter=',')
+
+    inputs = np.loadtxt('inputs.csv', delimiter=',')
+    labels = np.loadtxt('labels.csv', delimiter=',')
+
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state=42)
     print("Preprocessing complete.\n")
 
-    vocab_size = len(vocab)
-    model = SentimentClassifier(vocab_size)
+    # vocab_size = len(vocab)
+    model = SentimentClassifier(108706)
 
     print('Training sentiment classifier...')
     train(model, train_x, train_y)
