@@ -97,23 +97,26 @@ def main():
     pos_fp = 'data/sentiment/P.txt'
     neg_fp = 'data/sentiment/N.txt'
     sarc_fp = 'data/sentiment/S.txt'
+    classifier_inputs_fp = 'classifier_inputs.csv'
+    classifier_labels_fp = 'classifier_labels.csv'
 
     print("Preprocessing data...")
-    pos_vec, neg_vec, _, vocab, _ = get_data(pos_fp, neg_fp, sarc_fp)
-    pos_labels = np.ones(pos_vec.shape[0])
-    neg_labels = np.zeros(neg_vec.shape[0])
 
-    inputs = np.concatenate((pos_vec, neg_vec))
-    labels = np.concatenate((pos_labels, neg_labels))
+    # if preprocessing has already been done and stored, read from file
+    if os.path.exists(classifier_inputs_fp) and os.path.exists(classifier_labels_fp):
+        inputs = np.loadtxt(classifier_inputs_fp, delimiter=',')
+        labels = np.loadtxt(classifier_labels_fp, delimiter=',')
+    else: # perform preprocessing and write to file
+        pos_vec, neg_vec, _, vocab, _ = get_data(pos_fp, neg_fp, sarc_fp)
+        pos_labels = np.ones(pos_vec.shape[0])
+        neg_labels = np.zeros(neg_vec.shape[0])
 
-    # save as csv file
-    inputs = np.asarray(inputs)
-    labels = np.asarray(labels)
-    np.savetxt('inputs.csv', inputs, delimiter=',')
-    np.savetxt('labels.csv', labels, delimiter=',')
-
-    inputs = np.loadtxt('inputs.csv', delimiter=',')
-    labels = np.loadtxt('labels.csv', delimiter=',')
+        inputs = np.concatenate((pos_vec, neg_vec))
+        labels = np.concatenate((pos_labels, neg_labels))
+        inputs = np.asarray(inputs)
+        labels = np.asarray(labels)
+        np.savetxt(classifier_inputs_fp, inputs, delimiter=',')
+        np.savetxt(classifier_labels_fp, labels, delimiter=',')
 
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state=42)
     print("Preprocessing complete.\n")
@@ -131,4 +134,12 @@ def main():
     print("Final testing accuracy: ", accuracy)
 
 if __name__ == '__main__':
-	main()
+    gpu_available = tf.test.is_gpu_available()
+    print("GPU Available: ", gpu_available)
+
+    device = 'GPU:0' if gpu_available else 'CPU:0'
+    try:
+        with tf.device('/device:' + device):
+    	       main()
+    except RuntimeError as e:
+        print(e)
