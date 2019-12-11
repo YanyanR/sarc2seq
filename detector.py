@@ -7,6 +7,7 @@ import numpy as np
 from preprocess import get_data
 import math
 import os
+import sklearn.model_selection as sk
 
 class Model(tf.keras.Model):
     """
@@ -16,8 +17,8 @@ class Model(tf.keras.Model):
     def __init__(self, vocab_size):
         super(Model, self).__init__()
         self.vocab_size = vocab_size
-        self.window_size = 20
-        self.embedding_size = 40
+        self.window_size = 40
+        self.embedding_size = 128
         self.batch_size = 100
         self.lstm1_size = 200 # based on sentiment classifier
         self.lstm2_size = 150 # based on sentiment classifier
@@ -97,10 +98,26 @@ def main():
         sources like : Stanford Treebank Dataset, IMDB Reviews
         Dataset, Amazon Product Reviews and Sentiment 140.
     """
-    train_x, train_y, test_x, test_y, vocab_size = get_data('./data/S.txt', './data/P.txt', './data/N.txt')
+    pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx = get_data('./data/sentiment/P.txt', './data/sentiment/N.txt', './data/sentiment/S.txt')
     print("finished data processing")
     # initialize model and tensorflow variables
-    model = Model(vocab_size)
+
+    pos_vec = np.array(pos_vec)
+    neg_vec = np.array(neg_vec)
+    sarc_vec = np.array(sarc_vec)
+
+    normal = np.concatenate((pos_vec, neg_vec))
+    sarc_labels = np.ones(sarc_vec.shape[0])
+    norm_labels = np.zeros(normal.shape[0])
+
+    inputs = np.concatenate((normal, sarc_vec))
+    labels = np.concatenate((norm_labels, sarc_labels))
+
+    train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state = 42)
+
+    import pdb; pdb.set_trace()
+
+    model = Model(len(vocab))
 
     # Set-up the training step
     train(model, train_x, train_y)
