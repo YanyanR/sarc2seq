@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Embedding, LSTM, Attention, Dense
+from tensorflow.keras.layers import Embedding, LSTM, Attention, Dense, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
 import numpy as np
 from preprocess import get_data
@@ -32,29 +32,25 @@ class SentimentClassifier(Model):
         self.LSTM1 = LSTM(self.lstm1_size, return_sequences=True, return_state=True)
         self.A1 = Attention()
         self.LSTM2 = LSTM(self.lstm2_size, return_sequences=True, return_state=True)
+        self.pool = GlobalAveragePooling1D()
         self.D1 = Dense(self.dense_size, activation='sigmoid')
 
         self.optimizer = Adam(learning_rate=self.learning_rate)
 
     def call(self, inputs):
-        print(inputs.shape)
         embeddings = self.E1(inputs)
-        print(embeddings.shape)
         lstm1_out, _, _ = self.LSTM1(embeddings)
-        print(lstm1_out.shape)
         attention_out = self.A1([lstm1_out, lstm1_out])
-        print(attention_out.shape)
         lstm2_out, _, _ = self.LSTM2(attention_out)
-        print(lstm2_out.shape)
-        dense_out = self.D1(lstm2_out)
-        print(dense_out.shape)
+        pool_out = self.pool(lstm2_out)
+        dense_out = self.D1(pool_out)
         return dense_out
 
     def loss(self, logits, labels):
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
 
     def accuracy(self, logits, labels):
-        correct_predictions = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+        correct_predictions = tf.equal(tf.argmax(logits, 1), labels)
         return tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
 
 def train(model, train_inputs, train_labels):
@@ -64,7 +60,6 @@ def train(model, train_inputs, train_labels):
 
         with tf.GradientTape() as tape:
             predictions = model(batch_inputs)
-            print(predictions.shape, batch_labels.shape)
             loss = model.loss(predictions, batch_labels)
         gradients = tape.gradient(loss, model.trainable_variables)
         model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
