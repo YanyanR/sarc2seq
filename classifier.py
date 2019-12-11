@@ -86,7 +86,7 @@ def test(model, test_inputs, test_labels):
     total_accuracy = []
     for i in range(0, len(test_labels), model.batch_size):
         batch_inputs = test_inputs[i:i+model.batch_size]
-        batch_labels = test_labels[i:i+(batch*model.window_size)]
+        batch_labels = test_labels[i:i+model.batch_size]
 
         predictions = model.call(batch_inputs)
         total_accuracy.append(model.accuracy(predictions, batch_labels))
