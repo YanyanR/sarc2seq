@@ -30,8 +30,8 @@ def pad_corpus(sentences):
     """
     padded_sentences = []
     for sentence in sentences:
-        padded_sentence = sentence[:WINDOW_SIZE]
-        padded_sentence += [STOP_TOKEN] + [PAD_TOKEN] * (WINDOW_SIZE - len(padded_sentence)-1)
+        padded_sentence = sentence[:WINDOW_SIZE-1] # < 30 elements
+        padded_sentence += [STOP_TOKEN] + [PAD_TOKEN] * (WINDOW_SIZE - 1 - len(padded_sentence))
         padded_sentences.append(padded_sentence)
 
     return padded_sentences
@@ -51,8 +51,8 @@ def build_vocab(pos_sentences, neg_sentences, sarc_sentences):
     vocab_size = 20000
     total_words = sum(count_map.values())
     reduced_vocab = count_map.most_common(vocab_size)
-    print("portion words kept: {}, total words: {}".format(sum([s for (f,s) in reduced_vocab]) / total_words, total_words))
-    print("num pads: {}".format(count_map[PAD_TOKEN]))
+    # print("portion words kept: {}, total words: {}".format(sum([s for (f,s) in reduced_vocab]) / total_words, total_words))
+    # print("num pads: {}".format(count_map[PAD_TOKEN]))
     reduced_vocab = [first for (first, second) in reduced_vocab]
     all_words = sorted(list(set([STOP_TOKEN,PAD_TOKEN,UNK_TOKEN] + reduced_vocab)))
 
