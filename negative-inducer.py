@@ -37,7 +37,7 @@ parser.add_argument('--batch-size', type=int, default=64,
 parser.add_argument('--num-data-threads', type=int, default=2,
                     help='Number of threads to use when loading & pre-processing training images')
 
-parser.add_argument('--num-epochs', type=int, default=2,
+parser.add_argument('--num-epochs', type=int, default=3,
                     help='Number of passes through the training data to make before stopping')
 
 parser.add_argument('--learn-rate', type=float, default=0.001,
@@ -226,9 +226,9 @@ def test(model, test_x, test_y, padding_index):
     num_non_padded_correct = 0
     num_non_padded = 0
     for b in range(0, num_windows, model.batch_size):
-        probs = model(encoder_input[b:b+model.batch_size], decoder_input[b:b+model.batch_size])
+        probs = model(encoder_input[b:b+model.batch_size], decoder_input[b:b+model.batch_size]).numpy() 
         mask = (labels[b:b+model.batch_size] != padding_index)
-        loss = model.loss_function(probs, labels[b:b+model.batch_size], mask)
+        loss = model.loss_function(probs, labels[b:b+model.batch_size], mask).numpy() 
         accuracy = model.accuracy_function(probs, labels[b:b+model.batch_size], mask)
 
         non_padded = tf.reduce_sum(tf.cast(mask, tf.float32))
@@ -339,7 +339,7 @@ def main():
 
     if args.restore_checkpoint or args.mode == 'test':
         # restores the latest checkpoint using from the manager
-        checkpoint.restore(manager.latest_checkpoint).expect_partial()
+        checkpoint.restore(manager.latest_checkpoint)
 
     # init data for actual train/test!
     neut_neg_vec = np.loadtxt(neut_neg_fp, delimiter=',')
