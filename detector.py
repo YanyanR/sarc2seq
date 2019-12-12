@@ -75,10 +75,9 @@ def train(model, train_inputs, train_labels):
 def test(model, test_inputs, test_labels):
     total_accuracy = []
 
-    for i in range(0, len(train_inputs), model.batch_size):
-        import pdb; pdb.set_trace()
-        curr_inputs = np.array(train_inputs[i:i+model.batch_size])
-        curr_labels = train_labels[i:i+model.batch_size]
+    for i in range(0, len(test_inputs), model.batch_size):
+        curr_inputs = np.array(test_inputs[i:i+model.batch_size])
+        curr_labels = test_labels[i:i+model.batch_size]
 
         predictions, _ = model.call(curr_inputs)
         total_accuracy.append(model.accuracy(predictions, curr_labels))
@@ -98,25 +97,32 @@ def main():
         sources like : Stanford Treebank Dataset, IMDB Reviews
         Dataset, Amazon Product Reviews and Sentiment 140.
     """
-    # pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx = get_data('./data/sentiment/P.txt', './data/sentiment/N.txt', './data/sentiment/S.txt')
-    # print("finished data processing")
-    # # initialize model and tensorflow variables
-    #
-    # normal = np.concatenate((pos_vec, neg_vec))
-    # sarc_labels = np.ones(sarc_vec.shape[0])
-    # norm_labels = np.zeros(normal.shape[0])
-    #
-    # inputs = np.concatenate((normal, sarc_vec))
-    # labels = np.concatenate((norm_labels, sarc_labels))
 
-    # # save as csv file
-    # inputs = asarray(inputs)
-    # labels = asarray(labels)
-    # savetxt('inputs.csv', inputs, delimiter=',')
-    # savetxt('labels.csv', labels, delimiter=',')
+    pos_fp = 'data/sentiment/P.txt'
+    neg_fp = 'data/sentiment/N.txt'
+    sarc_fp = 'data/sentiment/S.txt'
+    discriminator_inputs_fp = 'discriminator_inputs.csv'
+    discriminator_labels_fp = 'discriminator_labels.csv'
 
-    inputs = loadtxt('inputs.csv', delimiter=',')
-    labels = loadtxt('labels.csv', delimiter=',')
+    print("Preprocessing data...")
+
+    # if os.path.exists(discriminator_inputs_fp) and os.path.exists(discriminator_labels_fp):
+    if False:
+        inputs = loadtxt(discriminator_inputs_fp, delimiter=',')
+        labels = loadtxt(discriminator_labels_fp, delimiter=',')
+    else:
+        pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx = get_data(pos_fp, neg_fp, sarc_fp)
+
+        normal_sentences = np.concatenate((pos_vec, neg_vec))
+        sarc_labels = np.ones(sarc_vec.shape[0])
+        normal_labels = np.zeros(normal_sentences.shape[0])
+
+        inputs = np.concatenate((normal_sentences, sarc_vec))
+        labels = np.concatenate((normal_labels, sarc_labels))
+        inputs = asarray(inputs)
+        labels = asarray(labels)
+        savetxt(discriminator_inputs_fp, inputs, delimiter=',')
+        savetxt(discriminator_labels_fp, labels, delimiter=',')
 
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state = 42)
 
@@ -129,4 +135,12 @@ def main():
     print("accuracy: ", accuracy)
 
 if __name__ == '__main__':
-	main()
+    gpu_available = tf.test.is_gpu_available()
+    print("GPU Available: ", gpu_available)
+
+    device = 'GPU:0' if gpu_available else 'CPU:0'
+    try:
+        with tf.device('/device:' + device):
+            main()
+    except RuntimeError as e:
+        print(e)
