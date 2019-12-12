@@ -7,6 +7,8 @@ from preprocess import get_data
 import math
 import os
 import sklearn.model_selection as sk
+from attention import SeqSelfAttention
+
 
 class SentimentClassifier(Model):
     """
@@ -30,7 +32,8 @@ class SentimentClassifier(Model):
 
         self.E1 = Embedding(self.vocab_size, self.embedding_size, input_length=self.window_size)
         self.LSTM1 = LSTM(self.lstm1_size, return_sequences=True, return_state=True)
-        self.A1 = Attention()
+        # self.A1 = Attention()
+        self.A1 = SeqSelfAttention(attention_activation='sigmoid', return_attention=True)
         self.LSTM2 = LSTM(self.lstm2_size, return_sequences=True, return_state=True)
         self.pool = GlobalAveragePooling1D()
         self.D1 = Dense(self.dense_size, activation='sigmoid')
@@ -38,26 +41,17 @@ class SentimentClassifier(Model):
         self.optimizer = Adam(learning_rate=self.learning_rate)
         self.is_trained = False
 
-    def call(self, inputs):
+    def call(self, inputs, neutralizing=False):
         embeddings = self.E1(inputs)
         lstm1_out, _, _ = self.LSTM1(embeddings)
-        attention_out = self.A1([lstm1_out, lstm1_out])
+        # attention_out = self.A1([lstm1_out, lstm1_out])
+        attention_out, att_weights = self.A1(lstm1_out)
+        if neutralizing:
+            return att_weights
         lstm2_out, _, _ = self.LSTM2(attention_out)
         pool_out = self.pool(lstm2_out)
         dense_out = self.D1(pool_out)
         return dense_out
-
-    def get_attention(self, inputs):
-        if not self.is_trained:
-            print("Model was not been trained before call to get_attention. Returning None.")
-            return None
-
-        embeddings = self.E1(inputs)
-        lstm1_out, _, _ = self.LSTM1(embeddings)
-        attention_out = self.A1([lstm1_out, lstm1_out])
-        lstm2_out, _, _ = self.LSTM2(attention_out)
-        pool_out = self.pool(lstm2_out)
-        return pool_out
 
     def loss(self, logits, labels):
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
@@ -86,7 +80,7 @@ def test(model, test_inputs, test_labels):
     total_accuracy = []
     for i in range(0, len(test_labels), model.batch_size):
         batch_inputs = test_inputs[i:i+model.batch_size]
-        batch_labels = test_labels[i:i+(batch*model.window_size)]
+        batch_labels = test_labels[i:i+model.window_size]
 
         predictions = model.call(batch_inputs)
         total_accuracy.append(model.accuracy(predictions, batch_labels))
@@ -118,8 +112,7 @@ def main():
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state=42)
     print("Preprocessing complete.\n")
 
-    # vocab_size = len(vocab)
-    model = SentimentClassifier(108706)
+    model = SentimentClassifier(len(vocab))
 
     print('Training sentiment classifier...')
     train(model, train_x, train_y)

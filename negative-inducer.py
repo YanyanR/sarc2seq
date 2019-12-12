@@ -208,6 +208,40 @@ def test(model, test_x, test_y):
 
     return perplexity,per_symbol_accuracy
 
+def neutralize(raw_classifier, to_neutralize):
+    print(raw_classifier.summary())
+    model_input = raw_classifier.input
+    model_outputs = raw_classifier.get_layer('seq_self_attention_1').output
+    classifier = Model(inputs=model_input, outputs=model_outputs)
+    new_data_all = np.zeros((to_neutralize.shape[0], to_neutralize.shape[1]))
+    for b in range(0, len(to_neutralize), classifier.batch_size):
+        batch_inputs = to_neutralize[b:b+classifier.batch_size]
+        print(batch_inputs.shape)
+        attn_weight = classifier.get_attention(batch_inputs)
+        print(attn_weight.shape)
+    
+        for i in range(0, classifier.batch_size):
+            current_max_array = tf.math.reduce_max(attn_weight[i], axis=0) # amount it's most attended to
+            # print(current_max_array.shape)
+            # print(current_max_array.dtype)
+            temp_list = current_max_array
+            # for k in range(0, current_max_array.shape[0]):
+            #     if current_max_array[k].eval() != 0: 
+            #         temp_list.append(current_max_array[k]) 
+
+            current_mean = np.mean(temp_list) # attention values
+            current_std = np.std(temp_list)
+            num_higher = current_mean + 1*(current_std)
+            num_lower = current_mean - 1.5*(current_std)
+            high_outlier = (current_max_array <= num_higher).astype(int)
+            low_outlier = (current_max_array > num_lower).astype(int)
+            context_ones = high_outlier*low_outlier
+
+            new_data = to_neutralize[(b*classifier.batch_size)+i] * context_ones
+            new_data_all[(b*classifier.batch_size)+i] = new_data
+
+    return new_data_all
+
 ## --------------------------------------------------------------------------------------
 
 def main():
@@ -217,6 +251,7 @@ def main():
     vocab_size = 108706
 
     if not os.path.exists(neut_neg_fp):
+        # train the classifier and output the needed neutral bits
         # literally just copied from classifier
         pos_fp = 'data/sentiment/P.txt'
         sarc_fp = 'data/sentiment/S.txt'
@@ -242,18 +277,19 @@ def main():
         train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state=42)
         print("Preprocessing complete.\n")
 
+        neg_vec = np.asarray(neg_vec)
+        print(neg_vec.shape)
+
         SCModel = SentimentClassifier(vocab_size)
+
+        SCModel(train_x[:SCModel.batch_size])
+        neutralized = neutralize(SCModel, neg_vec) # just to check for error
 
         print('Training sentiment classifier...')
         classifier_train(SCModel, train_x, train_y)
         print("Training complete.\n")
 
-        print('Testing sentiment classifier...')
-        accuracy = classifier_test(SCModel, test_x, test_y)
-        print("Testing complete.\n")
-        print("Final testing accuracy: ", accuracy)
-
-        neutralized = SCModel(neg_vec)
+        neutralized = neutralize(SCModel, neg_vec)
         np.savetxt(neut_neg_fp, neutralized, delimiter=',')
 
     model = NegativeInducer(vocab_size)

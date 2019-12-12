@@ -120,8 +120,7 @@ def main():
 
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state = 42)
 
-    # model = Model(len(vocab))
-    model = Model(108137)
+    model = Model(len(vocab))
 
     # Set-up the training step
     train(model, train_x, train_y)
