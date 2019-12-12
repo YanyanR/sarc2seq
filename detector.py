@@ -48,11 +48,11 @@ class Model(tf.keras.Model):
         return final_output
 
     def loss(self, logits, labels):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
 
     def accuracy(self, logits, labels):
-        correct_predictions = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+        correct_predictions = tf.equal(tf.argmax(logits, 1), labels)
         return tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
 
 
@@ -67,7 +67,7 @@ def train(model, train_inputs, train_labels):
         with tf.GradientTape() as tape:
             predictions = model.call(curr_inputs)
             loss = model.loss(predictions, curr_labels)
-            print(i, loss)
+            print(i, model.accuracy(predictions, curr_labels))
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
@@ -75,10 +75,10 @@ def train(model, train_inputs, train_labels):
 def test(model, test_inputs, test_labels):
     total_accuracy = []
 
-    for i in range(0, len(train_inputs), model.batch_size):
-        import pdb; pdb.set_trace()
-        curr_inputs = np.array(train_inputs[i:i+model.batch_size])
-        curr_labels = train_labels[i:i+model.batch_size]
+    for i in range(0, len(test_inputs), model.batch_size):
+        # import pdb; pdb.set_trace()
+        curr_inputs = np.array(test_inputs[i:i+model.batch_size])
+        curr_labels = test_labels[i:i+model.batch_size]
 
         predictions, _ = model.call(curr_inputs)
         total_accuracy.append(model.accuracy(predictions, curr_labels))
@@ -98,16 +98,15 @@ def main():
         sources like : Stanford Treebank Dataset, IMDB Reviews
         Dataset, Amazon Product Reviews and Sentiment 140.
     """
-    # pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx = get_data('./data/sentiment/P.txt', './data/sentiment/N.txt', './data/sentiment/S.txt')
-    # print("finished data processing")
-    # # initialize model and tensorflow variables
-    #
-    # normal = np.concatenate((pos_vec, neg_vec))
-    # sarc_labels = np.ones(sarc_vec.shape[0])
-    # norm_labels = np.zeros(normal.shape[0])
-    #
-    # inputs = np.concatenate((normal, sarc_vec))
-    # labels = np.concatenate((norm_labels, sarc_labels))
+    pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx = get_data('./data/sentiment/P.txt', './data/sentiment/N.txt', './data/sentiment/S.txt')
+    # initialize model and tensorflow variables
+
+    normal = np.concatenate((pos_vec, neg_vec))
+    sarc_labels = np.ones(sarc_vec.shape[0])
+    norm_labels = np.zeros(normal.shape[0])
+
+    inputs = np.concatenate((normal, sarc_vec))
+    labels = np.concatenate((norm_labels, sarc_labels))
 
     # # save as csv file
     # inputs = asarray(inputs)
@@ -115,10 +114,11 @@ def main():
     # savetxt('inputs.csv', inputs, delimiter=',')
     # savetxt('labels.csv', labels, delimiter=',')
 
-    inputs = loadtxt('inputs.csv', delimiter=',')
-    labels = loadtxt('labels.csv', delimiter=',')
+    # inputs = loadtxt('inputs.csv', delimiter=',')
+    # labels = loadtxt('labels.csv', delimiter=',')
 
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state = 42)
+    print("finished data processing")
 
     # model = Model(len(vocab))
     model = Model(108137)
