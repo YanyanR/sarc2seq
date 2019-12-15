@@ -75,7 +75,6 @@ def build_vocab(pos_sentences, neg_sentences, sarc_sentences):
     total_words = sum(count_map.values())
 
     reduced_vocab = count_map.most_common(vocab_size)
-    print(reduced_vocab)
     # print("portion words kept: {}, total words: {}".format(sum([s for (f,s) in reduced_vocab]) / total_words, total_words))
     # print("num pads: {}".format(count_map[PAD_TOKEN]))
     reduced_vocab = [first for (first, second) in reduced_vocab]
@@ -125,4 +124,3 @@ def get_data(pos_fp, neg_fp, sarc_fp):
     sarc_vec = convert_to_id(vocab, sarc_padded)
 
     return pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx
-    
