@@ -125,7 +125,4 @@ def get_data(pos_fp, neg_fp, sarc_fp):
     sarc_vec = convert_to_id(vocab, sarc_padded)
 
     return pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx
-
-if __name__ == "__main__":
-    clean_text_file("data/sentiment/P.txt", "data/sentiment/P_clean.txt")
-    clean_text_file("data/sentiment/N.txt", "data/sentiment/N_clean.txt")
+    
