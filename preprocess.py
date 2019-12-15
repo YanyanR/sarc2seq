@@ -1,11 +1,35 @@
 import numpy as np
 from collections import Counter
+import enchant
+import re
+import os
 
 PAD_TOKEN = "*PAD*"
 STOP_TOKEN = "*STOP*"
 START_TOKEN = "*START*"
 UNK_TOKEN = "*UNK*"
 WINDOW_SIZE = 30
+ENGLISH_DICT = enchant.Dict("en_US")
+
+def clean_text_file(filepath, dest):
+    """
+    @param file: a file path pointing to a text file
+    @param dest: a file path to save the cleaned file
+    @return None
+
+    Removes all punctuation and words that are not english words from a
+    text file and saves as a separate file.
+    """
+    text = []
+    with open(filepath, 'r') as in_file, open(dest, 'w') as out_file:
+        for line in in_file:
+                line = line.lower()
+                line = re.sub('[^a-zA-z0-9\s]', '', line)
+                line = line.split()
+                line = [w if ENGLISH_DICT.check(w) else UNK_TOKEN for w in line]
+
+                out_file.write(" ".join(line))
+                out_file.write("\n")
 
 def read_data(filepath):
     """
@@ -45,10 +69,13 @@ def build_vocab(pos_sentences, neg_sentences, sarc_sentences):
     for s in pos_sentences: tokens.extend(s)
     for s in neg_sentences: tokens.extend(s)
     for s in sarc_sentences: tokens.extend(s)
+
     count_map = Counter(tokens)
     vocab_size = 20000
     total_words = sum(count_map.values())
+
     reduced_vocab = count_map.most_common(vocab_size)
+    print(reduced_vocab)
     # print("portion words kept: {}, total words: {}".format(sum([s for (f,s) in reduced_vocab]) / total_words, total_words))
     # print("num pads: {}".format(count_map[PAD_TOKEN]))
     reduced_vocab = [first for (first, second) in reduced_vocab]
@@ -56,7 +83,7 @@ def build_vocab(pos_sentences, neg_sentences, sarc_sentences):
     all_words = sorted(list(set([STOP_TOKEN,PAD_TOKEN,UNK_TOKEN] + reduced_vocab)))
 
     vocab =  {word:i for i,word in enumerate(all_words)}
-    # 0 is reserved for negative inducer
+
     return vocab, vocab[PAD_TOKEN]
 
 def convert_to_id(vocab, sentences):
@@ -98,3 +125,7 @@ def get_data(pos_fp, neg_fp, sarc_fp):
     sarc_vec = convert_to_id(vocab, sarc_padded)
 
     return pos_vec, neg_vec, sarc_vec, vocab, pad_token_idx
+
+if __name__ == "__main__":
+    clean_text_file("data/sentiment/P.txt", "data/sentiment/P_clean.txt")
+    clean_text_file("data/sentiment/N.txt", "data/sentiment/N_clean.txt")

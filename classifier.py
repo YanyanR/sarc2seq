@@ -97,11 +97,13 @@ def main():
     print("Preprocessing data...")
 
     # if preprocessing has already been done and stored, read from file
-    if os.path.exists(classifier_inputs_fp) and os.path.exists(classifier_labels_fp):
+    # if os.path.exists(classifier_inputs_fp) and os.path.exists(classifier_labels_fp):
+    if False:
         inputs = np.loadtxt(classifier_inputs_fp, delimiter=',')
         labels = np.loadtxt(classifier_labels_fp, delimiter=',')
     else: # perform preprocessing and write to file
         pos_vec, neg_vec, _, vocab, _ = get_data(pos_fp, neg_fp, sarc_fp)
+        exit()
         pos_labels = np.ones(pos_vec.shape[0])
         neg_labels = np.zeros(neg_vec.shape[0])
 
