@@ -21,9 +21,7 @@ def read_data(filepath):
 
 def pad_corpus(sentences):
     """
-    arguments are lists of FRENCH, ENGLISH sentences. Returns [FRENCH-sents, ENGLISH-sents]. The
-    text is given an initial "*STOP*".  All sentences are padded with "*STOP*" at
-    the end.
+    Pads the sentences in each corpus to make them all of length WINDOW_SIZE
 
     @param sentences: list of sentences of variable length
     @return list of padded sentences of length WINDOW_SIZE
