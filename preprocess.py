@@ -54,11 +54,11 @@ def build_vocab(pos_sentences, neg_sentences, sarc_sentences):
     # print("portion words kept: {}, total words: {}".format(sum([s for (f,s) in reduced_vocab]) / total_words, total_words))
     # print("num pads: {}".format(count_map[PAD_TOKEN]))
     reduced_vocab = [first for (first, second) in reduced_vocab]
+
     all_words = sorted(list(set([STOP_TOKEN,PAD_TOKEN,UNK_TOKEN] + reduced_vocab)))
 
-    vocab =  {word:i+1 for i,word in enumerate(all_words)}
+    vocab =  {word:i for i,word in enumerate(all_words)}
     # 0 is reserved for negative inducer
-
     return vocab, vocab[PAD_TOKEN]
 
 def convert_to_id(vocab, sentences):

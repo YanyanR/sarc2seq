@@ -48,11 +48,10 @@ class Model(tf.keras.Model):
         return final_output
 
     def loss(self, logits, labels):
-        # import pdb; pdb.set_trace()
         return tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(labels, logits))
 
     def accuracy(self, logits, labels):
-        correct_predictions = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+        correct_predictions = tf.equal(tf.argmax(logits, 1), labels)
         return tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
 
 
@@ -67,9 +66,11 @@ def train(model, train_inputs, train_labels):
         with tf.GradientTape() as tape:
             predictions = model.call(curr_inputs)
             loss = model.loss(predictions, curr_labels)
-            print(i, loss)
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+        if i % 500 == 0:
+            print("train acc: ", model.accuracy(predictions, curr_labels))
 
 
 def test(model, test_inputs, test_labels):
@@ -79,8 +80,12 @@ def test(model, test_inputs, test_labels):
         curr_inputs = np.array(test_inputs[i:i+model.batch_size])
         curr_labels = test_labels[i:i+model.batch_size]
 
-        predictions, _ = model.call(curr_inputs)
+        predictions = model.call(curr_inputs)
         total_accuracy.append(model.accuracy(predictions, curr_labels))
+
+        if i % 500 == 0:
+            print("test acc: ", sum(total_accuracy) / len(total_accuracy))
+
     return sum(total_accuracy) / len(total_accuracy)
 
 def main():
@@ -125,14 +130,18 @@ def main():
         savetxt(discriminator_labels_fp, labels, delimiter=',')
 
     train_x, test_x, train_y, test_y = sk.train_test_split(inputs, labels, test_size=0.2, random_state = 42)
-
+    print("Finished processing.")
     model = Model(len(vocab))
 
     # Set-up the training step
+    print("Start training...")
     train(model, train_x, train_y)
+    print("Finished training")
+
     # Set up the testing steps
+    print("Testing...")
     accuracy = test(model, test_x, test_y)
-    print("accuracy: ", accuracy)
+    print("final accuracy: ", accuracy)
 
 if __name__ == '__main__':
     gpu_available = tf.test.is_gpu_available()
